@@ -88,9 +88,37 @@ def joinFactors(factors):
 
 
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-    "*** END YOUR CODE HERE ***"
+    uncondVars = set() # list of all unique unconditioned variables
+    condVars = set() # list of all unique conditioned variables
 
+    # Iterating over all factors
+    for factor in factors:
+        # Adding all unconditioned variables of this factor to a list
+        for var in factor.unconditionedVariables():
+            uncondVars.add(var)
+        # Adding all conditioned variables of this factor to separate list
+        for var in factor.conditionedVariables():
+            condVars.add(var)
+
+    # Removing any unconditioned variables if present in the conditioned variables list
+    for var in uncondVars:
+        if var in condVars:
+            condVars.remove(var)
+
+    # Creating new factor from set of all conditioned and unconditioned variables
+    newFac = Factor(uncondVars, condVars, list(factors)[0].variableDomainsDict())
+
+    # Iterating over all the possible assignments for the new joined factor
+    for assign in newFac.getAllPossibleAssignmentDicts():
+        # calculating overall joint probability for this assignment over all factors
+        prod = 1
+        for factor in factors:
+            prod *= Factor.getProbability(factor, assign) # probability of this assignment in current factor
+        # setting probability of this assignment for the new joined factor
+        Factor.setProbability(newFac, assign, prod)
+    # returning new joined factor with probabilities of possible assignments
+    return newFac
+    "*** END YOUR CODE HERE ***"
 
 def eliminateWithCallTracking(callTrackingList=None):
 
@@ -138,7 +166,26 @@ def eliminateWithCallTracking(callTrackingList=None):
                     "unconditionedVariables: " + str(factor.unconditionedVariables()))
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # list of all unconditioned variables for the given factor
+        uncondVars = factor.unconditionedVariables()
+        # removing the eliminationVariable from this list
+        uncondVars.remove(eliminationVariable)
+
+        # creating new factor with updated unconditioned variables and existing conditioned variables
+        newFac = Factor(uncondVars, factor.conditionedVariables(), factor.variableDomainsDict())
+        # Iterating over all the assignments for the new factor
+        for assign in newFac.getAllPossibleAssignmentDicts():
+            s = 0 # overall probability for this assignment
+            # iterating over domain of the eliminated variable for this factor
+            for var in factor.variableDomainsDict()[eliminationVariable]:
+                assign[eliminationVariable] = var
+                # Adding all the probabilities of the assign with each assignment of the eliminated variable
+                s += factor.getProbability(assign)
+            # setting the new probability of the assign without the eliminationVariable
+            newFac.setProbability(assign, s)
+
+        # returning new factor after removing the variable and updating its probability
+        return newFac
         "*** END YOUR CODE HERE ***"
 
     return eliminate
@@ -194,6 +241,38 @@ def normalize(factor):
                             str(factor))
 
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # Calculating the overall probability for all assignments for the factor
+    probS = 0
+    for assign in factor.getAllPossibleAssignmentDicts():
+        probS += factor.getProbability(assign)
+
+    uncondVars = set() # list of all unconditioned variables in the factor
+    condVars = set() # list of all conditioned variables in the factor
+
+    # Adding conditioned variables to the list
+    for var in factor.conditionedVariables():
+        condVars.add(var)
+
+    # Iterating over unconditioned variables in the factor
+    for var in factor.unconditionedVariables():
+        # if variable has one value in domain adding it to conditioned variables list
+        # else to unconditioned variables list
+        if len(factor.variableDomainsDict()[var]) == 1:
+            condVars.add(var)
+        else:
+            uncondVars.add(var)
+
+    # creating new normalized factor with the conditioned and unconditioned variables list
+    newFac = Factor(uncondVars, condVars, factor.variableDomainsDict())
+
+    # iterating over all the possible assignments of the factor
+    for assign in newFac.getAllPossibleAssignmentDicts():
+        # calculating the new normalized probability of this assignment
+        newProb = factor.getProbability(assign) / probS
+        # setting this new probability to this assignment
+        newFac.setProbability(assign, newProb)
+
+    # returning new normalized factor with updated probability
+    return newFac
     "*** END YOUR CODE HERE ***"
 

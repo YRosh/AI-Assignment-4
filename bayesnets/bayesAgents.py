@@ -78,12 +78,39 @@ def constructBayesNet(gameState):
       constants defined at the top of this file.
     """
 
-    obsVars = []
-    edges = []
-    variableDomainsDict = {}
+    obsVars = [] # list of observation variables
+    edges = [] # list of edges in the bayesNet
+    variableDomainsDict = {} # domains of each variable
 
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # Iterating over all possible positions for houses
+    for housePos in gameState.getPossibleHouses():
+        # walls of the house
+        for obsPos in gameState.getHouseWalls(housePos):
+            obsVar = OBS_VAR_TEMPLATE % obsPos # observation variable
+            obsVars.append(obsVar)
+
+            # edge between food house and observation of this position
+            edges.append((FOOD_HOUSE_VAR, obsVar))
+            # edge between ghost house and observation of this position
+            edges.append((GHOST_HOUSE_VAR, obsVar))
+
+            # possible values for each wall pos based on color
+            variableDomainsDict[obsVar] = [BLUE_OBS_VAL, RED_OBS_VAL, NO_OBS_VAL]
+
+    edges.append((X_POS_VAR, FOOD_HOUSE_VAR)) # edge between food house and x position
+    edges.append((Y_POS_VAR, FOOD_HOUSE_VAR)) # edge between food house and y position
+    edges.append((X_POS_VAR, GHOST_HOUSE_VAR)) # edge between ghost house and x position
+    edges.append((Y_POS_VAR, GHOST_HOUSE_VAR)) # edge between ghost house and y position
+
+    # domain for food house variable
+    variableDomainsDict[FOOD_HOUSE_VAR] = [TOP_LEFT_VAL, TOP_RIGHT_VAL, BOTTOM_LEFT_VAL, BOTTOM_RIGHT_VAL]
+    # domain for ghost house position variable
+    variableDomainsDict[GHOST_HOUSE_VAR] = [TOP_LEFT_VAL, TOP_RIGHT_VAL, BOTTOM_LEFT_VAL, BOTTOM_RIGHT_VAL]
+    # domain for x position variable
+    variableDomainsDict[X_POS_VAR] = [FOOD_LEFT_VAL, GHOST_LEFT_VAL]
+    # domain for y position variable
+    variableDomainsDict[Y_POS_VAR] = [BOTH_TOP_VAL, BOTH_BOTTOM_VAL, LEFT_TOP_VAL, LEFT_BOTTOM_VAL]
     "*** END YOUR CODE HERE ***"
 
     variables = [X_POS_VAR, Y_POS_VAR] + HOUSE_VARS + obsVars
@@ -115,7 +142,10 @@ def fillYCPT(bayesNet, gameState):
 
     yFactor = bn.Factor([Y_POS_VAR], [], bayesNet.variableDomainsDict())
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    yFactor.setProbability({Y_POS_VAR: LEFT_TOP_VAL}, PROB_ONLY_LEFT_TOP)
+    yFactor.setProbability({Y_POS_VAR: LEFT_BOTTOM_VAL}, PROB_ONLY_LEFT_BOTTOM)
+    yFactor.setProbability({Y_POS_VAR: BOTH_TOP_VAL}, PROB_BOTH_TOP)
+    yFactor.setProbability({Y_POS_VAR: BOTH_BOTTOM_VAL}, PROB_BOTH_BOTTOM)
     "*** END YOUR CODE HERE ***"
     bayesNet.setCPT(Y_POS_VAR, yFactor)
 
@@ -247,7 +277,21 @@ def getMostLikelyFoodHousePosition(evidence, bayesNet, eliminationOrder):
     (This should be a very short method.)
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # getting the finally inferred factor
+    infer = inference.inferenceByVariableElimination(bayesNet, ['foodHouse', 'ghostHouse'], evidence, eliminationOrder)
+    maxProb = float('-inf') # maintaining the highest probability
+    bestAssign = {} # storing the best assignment based on the stored highest probability
+
+    # iterating over all possible assignments in the inference got
+    for assign in infer.getAllPossibleAssignmentDicts():
+        prob = infer.getProbability(assign) # probability of the current assignment
+        # updating highest probability
+        if prob > maxProb:
+            maxProb = prob
+            # storing current assignment with the highest probability so far
+            bestAssign = assign
+    # returning the best assignment with the highest probability
+    return bestAssign
     "*** END YOUR CODE HERE ***"
 
 
